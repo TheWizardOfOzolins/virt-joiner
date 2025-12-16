@@ -197,15 +197,6 @@ webhooks:
     failurePolicy: Fail # Start with 'Fail' to ensure policies are enforced
 ```
 
-------------------------------
-Apply the standard deployment manifests (RBAC, Deployment, Service, WebhookConfiguration).
-
-> **Note:** If deploying on OpenShift, ensure you annotate the Service to generate serving certificates, as the Webhook requires HTTPS.
-
-```bash
-kubectl apply -f kubernetes/
-```
-
 ## ⚙️ Configuration
 
 You can configure the application via **Environment Variables** or a `config.yaml` file mounted at the application root.
