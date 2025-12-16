@@ -12,6 +12,29 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+# ------------------------------------------------------------------
+  # JOB 0: LINTING (Run fast checks first)
+  # ------------------------------------------------------------------
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Run Linter (Ruff)
+        # Check for errors and enforce formatting
+        run: |
+          ruff check .
+          ruff format --check .
+
   # ------------------------------------------------------------------
   # JOB 1: RUN UNIT TESTS (INSIDE UBI CONTAINER)
   # ------------------------------------------------------------------
