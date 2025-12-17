@@ -1,19 +1,19 @@
 import pytest
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import AsyncMock  # <--- Fixed: Removed MagicMock
 from app.services.k8s import send_delayed_creation_event, check_should_enroll
 # Import the Fake exception class from where we injected it
-from kubernetes_asyncio import client 
+from kubernetes_asyncio import client
 
 @pytest.mark.asyncio
 async def test_retry_logic_success(mocker, mock_k8s_client):
     # 1. Mock Sleep
     mock_sleep = mocker.patch("asyncio.sleep", new_callable=AsyncMock)
-    
+
     # 2. Setup the CustomObjectsApi with AsyncMock
     # We use AsyncMock because the code does 'await api.get_...'
     mock_cust_api = AsyncMock()
     mock_k8s_client.CustomObjectsApi.return_value = mock_cust_api
-    
+
     # 3. Setup Side Effects (Fail twice, then succeed)
     # Note: For AsyncMock side_effects with exceptions, we pass the exception instance directly
     mock_cust_api.get_namespaced_custom_object.side_effect = [
@@ -39,13 +39,13 @@ async def test_retry_logic_success(mocker, mock_k8s_client):
 @pytest.mark.asyncio
 async def test_retry_logic_failure(mocker, mock_k8s_client):
     mocker.patch("asyncio.sleep", new_callable=AsyncMock)
-    
+
     mock_cust_api = AsyncMock()
     mock_k8s_client.CustomObjectsApi.return_value = mock_cust_api
-    
+
     # Always raise 404
     mock_cust_api.get_namespaced_custom_object.side_effect = client.ApiException(status=404)
-    
+
     mock_send_event = mocker.patch("app.services.k8s.send_k8s_event", new_callable=AsyncMock)
 
     await send_delayed_creation_event("default", "ghost-vm", "Reason", "Msg")
@@ -60,7 +60,7 @@ async def test_inheritance_logic(mocker, mock_k8s_client):
     mock_k8s_client.CustomObjectsApi.return_value = mock_cust_api
 
     vm_object = {
-        "metadata": {"labels": {}}, 
+        "metadata": {"labels": {}},
         "spec": {
             "instancetype": {"name": "large-type", "kind": "VirtualMachineClusterInstanceType"}
         }
@@ -75,6 +75,6 @@ async def test_inheritance_logic(mocker, mock_k8s_client):
 
     assert should_enroll is True
     mock_cust_api.get_cluster_custom_object.assert_called_with(
-        group="instancetype.kubevirt.io", version="v1beta1", 
+        group="instancetype.kubevirt.io", version="v1beta1",
         plural="virtualmachineclusterinstancetypes", name="large-type"
     )
