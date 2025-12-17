@@ -7,7 +7,7 @@ from kubernetes_asyncio import client, config, watch
 from app.config import CONFIG, logger
 
 # Import IPA actions needed for the polling/deletion logic
-from app.services.ipa import ipa_host_del, get_ipa_client, execute_ipa_command, ipa_resolve_srv
+from app.services.ipa import ipa_host_del, get_ipa_client, execute_ipa_command
 
 
 # --- HELPER: K8s Event Sender ---
@@ -200,12 +200,13 @@ async def poll_ipa_keytab(namespace, name, fqdn, timeout_minutes=15):
                     return
 
         except Exception as e:
-            if "session" in str(e).lower() or "login" in str(e).lower():
-                try:
-                    c = get_ipa_client()
-                except Exception:
-                    pass
-            logger.debug(f"Polling {fqdn} failed (retrying in 30s): {e}")
+            # Catch ANY error (network, timeout, auth) and force a reconnect/failover.
+            logger.debug(f"Polling check failed for {fqdn}: {e}")
+            try:
+                logger.info("Attempting to switch/reconnect IPA client...")
+                c = get_ipa_client()
+            except Exception as re_connect_error:
+                logger.warning(f"Failed to reconnect during polling: {re_connect_error}")
 
         await asyncio.sleep(30)
 
