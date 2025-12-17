@@ -13,7 +13,6 @@ from app.services.ipa import ipa_host_add, build_fqdn
 
 router = APIRouter()
 
-
 @router.post("/mutate")
 async def mutate_vm(
     background_tasks: BackgroundTasks, review: Dict[str, Any] = Body(...)
@@ -124,6 +123,7 @@ async def mutate_vm(
 
     if enrollment_success:
         fqdn = build_fqdn(vm_name, namespace)
+        ipa_host, _ = ipa_resolve_srv("_kerberos", "_tcp", CONFIG["domain"])
 
         vm_template = vm_spec.get("template", {})
         template_spec = vm_template.get("spec", {})
@@ -147,7 +147,7 @@ async def mutate_vm(
 
         ipa_cmd_parts = [
             "ipa-client-install",
-            f"--server={CONFIG['IPA_HOST']}",
+            f"--server={ipa_host}",
             f"--hostname={fqdn}",
             f"--domain={CONFIG['DOMAIN']}",
             f"--realm={CONFIG['DOMAIN'].upper()}",
