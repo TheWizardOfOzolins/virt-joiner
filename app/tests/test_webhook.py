@@ -3,7 +3,6 @@ from fastapi.testclient import TestClient
 from app.main import app
 import base64
 import json
-import jsonpatch
 
 client = TestClient(app)
 
@@ -32,37 +31,74 @@ SAMPLE_REVIEW = {
 }
 
 @pytest.mark.asyncio
+async def test_mutate_vm_fqdn_too_long(mocker):
+    """
+    Verifies that the webhook rejects a VM if the constructed FQDN is > 64 chars.
+    """
+    # 1. Setup a request with very long names
+    long_name = "a" * 40        # 40 chars
+    long_namespace = "b" * 20   # 20 chars
+    # + domain "example.com" (11 chars) + dots = ~73 chars
+
+    request_data = {
+        "request": {
+            "uid": "123",
+            "namespace": long_namespace,
+            "object": {
+                "metadata": {
+                    "name": long_name,
+                    "namespace": long_namespace,
+                    "labels": {"ipa-enroll": "true"}
+                },
+                "spec": {"template": {"spec": {}}}
+            }
+        }
+    }
+
+    # 2. Mock dependencies
+    mocker.patch("app.routers.webhook.ipa_host_add")
+
+    # 3. Send Request
+    response = client.post("/mutate", json=request_data)
+    assert response.status_code == 200
+    data = response.json()
+
+    # 4. Verify Rejection
+    assert data["response"]["allowed"] is False
+    assert "Max allowed is 64" in data["response"]["status"]["message"]
+
+@pytest.mark.asyncio
 async def test_mutate_vm_success(mocker):
     # 1. Mock the dependencies
     # Mock IPA success returning a fake OTP
     mocker.patch("app.routers.webhook.ipa_host_add", return_value="secret-otp-123")
-    
+
     # Mock K8s checks (Always say yes to enrollment)
     mocker.patch("app.routers.webhook.check_should_enroll", return_value=True)
-    
+
     # Mock Background Tasks (so we don't actually spawn threads)
     mocker.patch("fastapi.BackgroundTasks.add_task")
 
     # 2. Make the Request
     response = client.post("/mutate", json=SAMPLE_REVIEW)
-    
+
     assert response.status_code == 200
     data = response.json()
-    
+
     # 3. Verify the Response Structure
     assert data["response"]["allowed"] is True
     assert data["response"]["patchType"] == "JSONPatch"
-    
+
     # 4. Decode and Verify the Patch
     patch_decoded = base64.b64decode(data["response"]["patch"]).decode()
     patch_obj = json.loads(patch_decoded)
-    
+
     # Check if cloud-init volume was added
     volume_patch = next((op for op in patch_obj if op["path"] == "/spec/template/spec/volumes/-"), None)
     assert volume_patch is not None
-    
+
     user_data = volume_patch["value"]["cloudInitNoCloud"]["userData"]
-    
+
     # Verify our commands were injected
     assert "ipa-client-install" in user_data
     assert "secret-otp-123" in user_data # Ensure OTP was passed
@@ -71,7 +107,7 @@ async def test_mutate_vm_success(mocker):
 @pytest.mark.asyncio
 async def test_mutate_vm_os_detection(mocker):
     """
-    Verifies that providing a preference (e.g., 'ubuntu') triggers the 
+    Verifies that providing a preference (e.g., 'ubuntu') triggers the
     correct install command from the OS_MAP.
     """
     # 1. Mock dependencies
@@ -98,7 +134,7 @@ async def test_mutate_vm_os_detection(mocker):
                         }
                     },
                     # This name 'ubuntu' matches a key in your config.py OS_MAP
-                    "preference": {"name": "ubuntu"} 
+                    "preference": {"name": "ubuntu"}
                 }
             }
         }
@@ -122,9 +158,9 @@ async def test_mutate_vm_os_detection(mocker):
     # Should see apt-get (Ubuntu)
     assert "apt-get install" in user_data
     assert "DEBIAN_FRONTEND=noninteractive" in user_data
-    
+
     # Should NOT see dnf (RHEL default)
     assert "dnf install" not in user_data
-    
+
     # Should still see the enroll command
     assert "ipa-client-install" in user_data

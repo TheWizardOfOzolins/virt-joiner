@@ -2,9 +2,8 @@ import os
 import yaml
 import logging
 
-# --- Configuration Loader ---
 def load_config(config_path=None):
-    # CHANGED: If no path provided, check Env Var, then default to "config.yaml"
+    # If no path provided, check Env Var, then default to "config.yaml"
     if config_path is None:
         config_path = os.getenv("CONFIG_PATH", "config.yaml")
 
@@ -15,7 +14,7 @@ def load_config(config_path=None):
         "IPA_PASS": "password",
         "DOMAIN": "example.com",
         "FINALIZER_NAME": "ipa.enroll/cleanup",
-        "LOG_LEVEL": "INFO", 
+        "LOG_LEVEL": "INFO",
         "OS_MAP": {
             "ubuntu": "export DEBIAN_FRONTEND=noninteractive && apt-get update -y && apt-get install -y freeipa-client",
             "debian": "export DEBIAN_FRONTEND=noninteractive && apt-get update -y && apt-get install -y freeipa-client"
@@ -28,8 +27,9 @@ def load_config(config_path=None):
             with open(config_path, 'r') as f:
                 file_conf = yaml.safe_load(f) or {}
                 for k in ["ipa_host", "ipa_user", "ipa_pass", "domain", "finalizer_name", "log_level"]:
-                    if k in file_conf: conf[k.upper()] = file_conf[k]
-                
+                    if k in file_conf:
+                        conf[k.upper()] = file_conf[k]
+
                 if "os_map" in file_conf and isinstance(file_conf["os_map"], dict):
                     conf["OS_MAP"].update(file_conf["os_map"])
             print(f"Loaded configuration from {config_path}")
@@ -45,16 +45,14 @@ def load_config(config_path=None):
     conf["DOMAIN"] = os.getenv("DOMAIN", conf["DOMAIN"])
     conf["FINALIZER_NAME"] = os.getenv("FINALIZER_NAME", conf["FINALIZER_NAME"])
     conf["LOG_LEVEL"] = os.getenv("LOG_LEVEL", conf["LOG_LEVEL"]).upper()
-    
+
     return conf
 
 CONFIG = load_config()
 
-# Setup Logger here so it's consistent everywhere
 numeric_level = getattr(logging, CONFIG["LOG_LEVEL"], logging.INFO)
 logging.basicConfig(
     level=numeric_level,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("virt-joiner")
-logger.info(f"Log level set to: {CONFIG['LOG_LEVEL']}")
