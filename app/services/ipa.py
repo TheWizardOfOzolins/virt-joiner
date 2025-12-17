@@ -5,7 +5,8 @@ import datetime
 
 # --- Helper: IPA Client Wrapper ---
 def get_ipa_client():
-    c = Client(host=CONFIG["IPA_HOST"], verify_ssl=False)
+    # Now using the boolean from the config file
+    c = Client(host=CONFIG["IPA_HOST"], verify_ssl=CONFIG["IPA_VERIFY_SSL"])
     c.login(CONFIG["IPA_USER"], CONFIG["IPA_PASS"])
     return c
 

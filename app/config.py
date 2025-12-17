@@ -14,6 +14,8 @@ def load_config(config_path=None):
         "IPA_USER": "admin",
         "IPA_PASS": "password",
         "DOMAIN": "example.com",
+        # NEW: Default to False (matches your previous hardcoded setting)
+        "IPA_VERIFY_SSL": False,
         "FINALIZER_NAME": "ipa.enroll/cleanup",
         "LOG_LEVEL": "INFO",
         "OS_MAP": {
@@ -32,6 +34,7 @@ def load_config(config_path=None):
                     "ipa_user",
                     "ipa_pass",
                     "domain",
+                    "ipa_verify_ssl",  # NEW: Check for this key in YAML
                     "finalizer_name",
                     "log_level",
                 ]:
@@ -53,6 +56,12 @@ def load_config(config_path=None):
     conf["DOMAIN"] = os.getenv("DOMAIN", conf["DOMAIN"])
     conf["FINALIZER_NAME"] = os.getenv("FINALIZER_NAME", conf["FINALIZER_NAME"])
     conf["LOG_LEVEL"] = os.getenv("LOG_LEVEL", conf["LOG_LEVEL"]).upper()
+
+    # NEW: Handle Boolean conversion for SSL Verify
+    # We grab the value (which might be a bool from YAML or None from Env)
+    # Then we cast it safely to ensure we end up with a proper Python boolean.
+    ssl_val = os.getenv("IPA_VERIFY_SSL", conf["IPA_VERIFY_SSL"])
+    conf["IPA_VERIFY_SSL"] = str(ssl_val).lower() == "true"
 
     return conf
 
