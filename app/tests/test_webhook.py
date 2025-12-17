@@ -15,20 +15,18 @@ SAMPLE_REVIEW = {
             "metadata": {
                 "name": "test-vm",
                 "namespace": "default",
-                "labels": {"ipa-enroll": "true"} # Trigger enrollment
+                "labels": {"ipa-enroll": "true"},  # Trigger enrollment
             },
             "spec": {
                 "template": {
-                    "spec": {
-                        "volumes": [],
-                        "domain": {"devices": {"disks": []}}
-                    }
+                    "spec": {"volumes": [], "domain": {"devices": {"disks": []}}}
                 },
-                "preference": {"name": "rhel-9"}
-            }
-        }
+                "preference": {"name": "rhel-9"},
+            },
+        },
     }
 }
+
 
 @pytest.mark.asyncio
 async def test_mutate_vm_fqdn_too_long(mocker):
@@ -36,8 +34,8 @@ async def test_mutate_vm_fqdn_too_long(mocker):
     Verifies that the webhook rejects a VM if the constructed FQDN is > 64 chars.
     """
     # 1. Setup a request with very long names
-    long_name = "a" * 40        # 40 chars
-    long_namespace = "b" * 20   # 20 chars
+    long_name = "a" * 40  # 40 chars
+    long_namespace = "b" * 20  # 20 chars
     # + domain "example.com" (11 chars) + dots = ~73 chars
 
     request_data = {
@@ -48,10 +46,10 @@ async def test_mutate_vm_fqdn_too_long(mocker):
                 "metadata": {
                     "name": long_name,
                     "namespace": long_namespace,
-                    "labels": {"ipa-enroll": "true"}
+                    "labels": {"ipa-enroll": "true"},
                 },
-                "spec": {"template": {"spec": {}}}
-            }
+                "spec": {"template": {"spec": {}}},
+            },
         }
     }
 
@@ -66,6 +64,7 @@ async def test_mutate_vm_fqdn_too_long(mocker):
     # 4. Verify Rejection
     assert data["response"]["allowed"] is False
     assert "Max allowed is 64" in data["response"]["status"]["message"]
+
 
 @pytest.mark.asyncio
 async def test_mutate_vm_success(mocker):
@@ -94,15 +93,18 @@ async def test_mutate_vm_success(mocker):
     patch_obj = json.loads(patch_decoded)
 
     # Check if cloud-init volume was added
-    volume_patch = next((op for op in patch_obj if op["path"] == "/spec/template/spec/volumes/-"), None)
+    volume_patch = next(
+        (op for op in patch_obj if op["path"] == "/spec/template/spec/volumes/-"), None
+    )
     assert volume_patch is not None
 
     user_data = volume_patch["value"]["cloudInitNoCloud"]["userData"]
 
     # Verify our commands were injected
     assert "ipa-client-install" in user_data
-    assert "secret-otp-123" in user_data # Ensure OTP was passed
-    assert "dnf install" in user_data # Default RHEL command
+    assert "secret-otp-123" in user_data  # Ensure OTP was passed
+    assert "dnf install" in user_data  # Default RHEL command
+
 
 @pytest.mark.asyncio
 async def test_mutate_vm_os_detection(mocker):
@@ -124,19 +126,16 @@ async def test_mutate_vm_os_detection(mocker):
                 "metadata": {
                     "name": "ubuntu-vm",
                     "namespace": "default",
-                    "labels": {"ipa-enroll": "true"}
+                    "labels": {"ipa-enroll": "true"},
                 },
                 "spec": {
                     "template": {
-                        "spec": {
-                            "volumes": [],
-                            "domain": {"devices": {"disks": []}}
-                        }
+                        "spec": {"volumes": [], "domain": {"devices": {"disks": []}}}
                     },
                     # This name 'ubuntu' matches a key in your config.py OS_MAP
-                    "preference": {"name": "ubuntu"}
-                }
-            }
+                    "preference": {"name": "ubuntu"},
+                },
+            },
         }
     }
 
@@ -150,7 +149,9 @@ async def test_mutate_vm_os_detection(mocker):
     patch_obj = json.loads(patch_decoded)
 
     # 5. Extract Cloud-Init UserData
-    volume_patch = next((op for op in patch_obj if op["path"] == "/spec/template/spec/volumes/-"), None)
+    volume_patch = next(
+        (op for op in patch_obj if op["path"] == "/spec/template/spec/volumes/-"), None
+    )
     assert volume_patch is not None
     user_data = volume_patch["value"]["cloudInitNoCloud"]["userData"]
 

@@ -6,6 +6,7 @@ from app.routers import webhook
 from app.services.k8s import run_controller
 from app.config import logger
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     version = os.getenv("APP_VERSION", "unknown")
@@ -14,7 +15,7 @@ async def lifespan(app: FastAPI):
     # Start the background controller
     controller_task = asyncio.create_task(run_controller())
 
-    yield # Application runs here
+    yield  # Application runs here
 
     # Shutdown logic
     logger.info("Shutting down virt-joiner...")
@@ -23,6 +24,7 @@ async def lifespan(app: FastAPI):
         await controller_task
     except asyncio.CancelledError:
         pass
+
 
 app = FastAPI(lifespan=lifespan)
 

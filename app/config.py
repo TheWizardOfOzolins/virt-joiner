@@ -2,6 +2,7 @@ import os
 import yaml
 import logging
 
+
 def load_config(config_path=None):
     # If no path provided, check Env Var, then default to "config.yaml"
     if config_path is None:
@@ -17,16 +18,23 @@ def load_config(config_path=None):
         "LOG_LEVEL": "INFO",
         "OS_MAP": {
             "ubuntu": "export DEBIAN_FRONTEND=noninteractive && apt-get update -y && apt-get install -y freeipa-client",
-            "debian": "export DEBIAN_FRONTEND=noninteractive && apt-get update -y && apt-get install -y freeipa-client"
-        }
+            "debian": "export DEBIAN_FRONTEND=noninteractive && apt-get update -y && apt-get install -y freeipa-client",
+        },
     }
 
     # 2. Load from YAML
     if os.path.exists(config_path):
         try:
-            with open(config_path, 'r') as f:
+            with open(config_path, "r") as f:
                 file_conf = yaml.safe_load(f) or {}
-                for k in ["ipa_host", "ipa_user", "ipa_pass", "domain", "finalizer_name", "log_level"]:
+                for k in [
+                    "ipa_host",
+                    "ipa_user",
+                    "ipa_pass",
+                    "domain",
+                    "finalizer_name",
+                    "log_level",
+                ]:
                     if k in file_conf:
                         conf[k.upper()] = file_conf[k]
 
@@ -48,11 +56,11 @@ def load_config(config_path=None):
 
     return conf
 
+
 CONFIG = load_config()
 
 numeric_level = getattr(logging, CONFIG["LOG_LEVEL"], logging.INFO)
 logging.basicConfig(
-    level=numeric_level,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=numeric_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger("virt-joiner")

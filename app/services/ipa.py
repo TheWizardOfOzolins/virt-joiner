@@ -2,11 +2,13 @@ from python_freeipa import Client
 from app.config import CONFIG, logger
 import datetime
 
+
 # --- Helper: IPA Client Wrapper ---
 def get_ipa_client():
-    c = Client(host=CONFIG['IPA_HOST'], verify_ssl=False)
-    c.login(CONFIG['IPA_USER'], CONFIG['IPA_PASS'])
+    c = Client(host=CONFIG["IPA_HOST"], verify_ssl=False)
+    c.login(CONFIG["IPA_USER"], CONFIG["IPA_PASS"])
     return c
+
 
 # --- Helper: Robust Command Executor ---
 def execute_ipa_command(client, command, *args, **kwargs):
@@ -27,13 +29,16 @@ def ipa_host_add(vm_name: str, namespace: str, vm_uuid: str) -> str:
 
     logger.info(f"Registering host: {fqdn}")
     try:
-        execute_ipa_command(client_ipa, "host_add", fqdn, force=True, description=desc_text)
-        otp = vm_uuid 
+        execute_ipa_command(
+            client_ipa, "host_add", fqdn, force=True, description=desc_text
+        )
+        otp = vm_uuid
         execute_ipa_command(client_ipa, "host_mod", fqdn, userpassword=otp)
         return otp
     except Exception as e:
         logger.error(f"IPA Add Error for {fqdn}: {e}")
         raise e
+
 
 # --- Action: Delete Host from IPA ---
 def ipa_host_del(vm_name: str, namespace: str):
@@ -48,6 +53,7 @@ def ipa_host_del(vm_name: str, namespace: str):
             return
         logger.error(f"IPA Del Error for {fqdn}: {e}")
         raise e
+
 
 # --- Helper: FQDN Construction ---
 def build_fqdn(vm_name: str, namespace: str) -> str:
