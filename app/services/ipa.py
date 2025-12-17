@@ -1,13 +1,15 @@
 from python_freeipa import Client
 from app.config import CONFIG, logger
-from typing import Tuple, Optional
+from typing import List
 import datetime
 import random
 import dns.resolver
 
-def ipa_resolve_srv(service: str, protocol: str, domain: str) -> Optional[Tuple[str, int]]:
+# --- Helper: DNS SRV Resolver ---
+def ipa_resolve_srv(service: str, protocol: str, domain: str) -> List[str]:
     """
-    Resolves SRV records and returns the highest priority (best) server.
+    Resolves SRV records and returns A LIST of all valid hostnames,
+    sorted by Priority (asc) and then randomized by Weight/Shuffle.
 
     Args:
         service: The service name (e.g., "_ldap")
@@ -15,17 +17,18 @@ def ipa_resolve_srv(service: str, protocol: str, domain: str) -> Optional[Tuple[
         domain: The domain name (e.g., "example.com")
 
     Returns:
-        Tuple of (target_host, port) for the best server, or None if no records found.
-        Target_host is returned as a string without trailing dot.
+        List of target hostnames strings (without trailing dots).
+        Returns empty list [] if no records found.
     """
     query_name = f"{service}.{protocol}.{domain}"
+    results = []
 
     try:
         answers = dns.resolver.resolve(query_name, 'SRV')
 
         if not answers:
             logger.info(f"No SRV records found for {query_name}")
-            return None
+            return []
 
         # Group records by priority
         records_by_priority = {}
@@ -33,77 +36,83 @@ def ipa_resolve_srv(service: str, protocol: str, domain: str) -> Optional[Tuple[
             prio = rdata.priority
             if prio not in records_by_priority:
                 records_by_priority[prio] = []
-            records_by_priority[prio].append((rdata.weight, rdata.target.to_text().rstrip('.'), rdata.port))
 
-        # Get the lowest (best) priority
-        best_priority = min(records_by_priority.keys())
-        candidates = records_by_priority[best_priority]
+            # Store target (stripped of dot)
+            target = rdata.target.to_text().rstrip('.')
+            records_by_priority[prio].append(target)
 
-        if not candidates:
-            return None
+        # Process priorities in order (lowest number = highest priority)
+        sorted_priorities = sorted(records_by_priority.keys())
 
-        # If only one candidate, return it
-        if len(candidates) == 1:
-            weight, target, port = candidates[0]
-            logger.info(f"Selected SRV (priority {best_priority}): {target}:{port}")
-            return target, port
+        for prio in sorted_priorities:
+            candidates = records_by_priority[prio]
 
-        # Multiple candidates at same priority: use weight-based selection
-        total_weight = sum(weight for weight, _, _ in candidates)
-        if total_weight == 0:
-            # All weights zero → pick randomly
-            selected = random.choice(candidates)
-        else:
-            # Weighted random selection
-            rand = random.randint(1, total_weight)
-            cumulative = 0
-            for weight, target, port in candidates:
-                cumulative += weight
-                if rand <= cumulative:
-                    selected = (weight, target, port)
-                    break
-            else:
-                selected = candidates[-1]  # Fallback
+            # Shuffle candidates of the same priority for basic load balancing
+            random.shuffle(candidates)
 
-        _, target, port = selected
-        logger.info(f"Selected SRV (priority {best_priority}, weighted): {target}:{port}")
-        return target, port
+            # Add them to the master list
+            results.extend(candidates)
 
-    except dns.resolver.NoAnswer:
-        logger.info(f"No SRV records found for {query_name}")
-        return None
-    except dns.resolver.NXDOMAIN:
-        logger.info(f"Domain {domain} does not exist")
-        return None
+    except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN):
+        logger.info(f"No SRV records found for {query_name} or domain missing")
     except Exception as e:
         logger.info(f"An error occurred during SRV lookup: {e}")
-        return None
 
+    return results
+
+
+# --- Helper: Get Authenticated Client (Retry Logic) ---
 def get_ipa_client():
     """
-    Creates and returns an authenticated IPA Client instance.
-
-    Raises:
-        RuntimeError: If no Kerberos SRV records are found or resolution fails.
+    Creates an authenticated Client by trying DNS candidates first,
+    then falling back to the static IPA_HOST config.
     """
-    host, _ = ipa_resolve_srv("_kerberos", "_tcp", CONFIG["domain"])
+    candidate_hosts = []
 
-    if host is None:
+    # 1. Try DNS Discovery (Dynamic)
+    # Note: Use CONFIG.get to safely access keys, assuming 'DOMAIN' is the key in your config
+    domain = CONFIG.get("DOMAIN") or CONFIG.get("domain")
+    if domain:
+        dns_hosts = ipa_resolve_srv("_kerberos", "_tcp", domain)
+        if dns_hosts:
+            logger.info(f"Discovered IPA servers via DNS: {dns_hosts}")
+            candidate_hosts.extend(dns_hosts)
+
+    # 2. Add Static Config (Fallback)
+    # This handles "ipa1.example.com" or "ipa1,ipa2"
+    static_config = CONFIG.get("IPA_HOST")
+    if static_config:
+        static_hosts = [h.strip() for h in static_config.split(",") if h.strip()]
+        for h in static_hosts:
+            if h not in candidate_hosts:
+                candidate_hosts.append(h)
+
+    if not candidate_hosts:
         raise RuntimeError(
-            f"Failed to discover FreeIPA server: "
-            f"No _kerberos._tcp.{CONFIG['domain']} SRV records found. "
-            f"Check DNS configuration or domain setting."
+            "No IPA servers found! Check your DNS SRV records or IPA_HOST configuration."
         )
 
-    logger.info(f"Connecting to FreeIPA server: {host}")
+    # 3. Connection Retry Loop
+    errors = []
+    for host in candidate_hosts:
+        try:
+            logger.debug(f"Attempting connection to FreeIPA server: {host}")
 
-    try:
-        c = Client(host=host, verify_ssl=CONFIG["IPA_VERIFY_SSL"])
-        c.login(CONFIG["IPA_USER"], CONFIG["IPA_PASS"])
-        logger.info("Successfully authenticated to FreeIPA")
-        return c
-    except Exception as e:
-        raise RuntimeError(f"Failed to authenticate to FreeIPA server {host}: {e}") from e
+            # Initialize Client
+            c = Client(host=host, verify_ssl=CONFIG["IPA_VERIFY_SSL"])
+            c.login(CONFIG["IPA_USER"], CONFIG["IPA_PASS"])
+
+            logger.info(f"Successfully authenticated to {host}")
+            return c
+
+        except Exception as e:
+            logger.warning(f"Failed to connect to {host}: {e}")
+            errors.append(f"{host}: {str(e)}")
+            continue # Try the next server
+
+    # If loop finishes without returning, we failed everywhere
+    raise RuntimeError(f"All IPA connection attempts failed. Errors: {errors}")
+
 
 # --- Helper: Robust Command Executor ---
 def execute_ipa_command(client, command, *args, **kwargs):
@@ -152,4 +161,6 @@ def ipa_host_del(vm_name: str, namespace: str):
 
 # --- Helper: FQDN Construction ---
 def build_fqdn(vm_name: str, namespace: str) -> str:
-    return f"{vm_name}.{namespace}.{CONFIG['DOMAIN']}"
+    # Handle case sensitivity of config keys if needed
+    domain = CONFIG.get("DOMAIN") or CONFIG.get("domain")
+    return f"{vm_name}.{namespace}.{domain}"
