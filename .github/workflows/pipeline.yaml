@@ -202,3 +202,48 @@ jobs:
             podman logs virt-joiner-test
             exit 1
           fi
+
+  # ------------------------------------------------------------------
+  # JOB 4: CREATE GITHUB RELEASE
+  # ------------------------------------------------------------------
+  release:
+    needs: smoke-test
+    # Only run on main branch
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to create tags/releases
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Read App Version
+        id: get_version
+        run: |
+          if [ -f VERSION ]; then
+            echo "APP_VERSION=$(cat VERSION | tr -d '[:space:]')" >> $GITHUB_ENV
+          else
+            echo "APP_VERSION=0.0.0" >> $GITHUB_ENV
+          fi
+
+      - name: Check if Tag Exists
+        id: check_tag
+        run: |
+          git fetch --tags
+          if git rev-parse "v${{ env.APP_VERSION }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Tag v${{ env.APP_VERSION }} already exists. Skipping release."
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        # Only run if the tag doesn't exist yet (i.e., you bumped the VERSION file)
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ env.APP_VERSION }}
+          name: Release v${{ env.APP_VERSION }}
+          generate_release_notes: true # Auto-generates changelog from commits!
+          draft: false
+          prerelease: false
