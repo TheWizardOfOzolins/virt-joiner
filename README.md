@@ -14,16 +14,18 @@ The application consists of two main components running in a single container:
 ## 🔄 Order of Events
 
 ### Phase 1: VM Creation & Enrollment
-1.  **Intercept:** A user applies a `VirtualMachine` manifest. The Kubernetes API pauses the request and sends it to `virt-joiner`.
-2.  **Registration:** `virt-joiner` connects to the FreeIPA server, creates a new host entry, and generates a One-Time Password (OTP).
-3.  **Injection:** The VM configuration is patched (mutated) to include a `cloud-init` script containing the OTP and the `ipa-client-install` command.
-4.  **Boot:** The VM is allowed to start. On first boot, `cloud-init` runs the install command, using the OTP to join the domain securely.
-5.  **Verification:** The background controller polls FreeIPA to check if the host has uploaded its Keytab (indicating success) and emits a `Normal` event to the Kubernetes object.
+
+1. **Intercept:** A user applies a `VirtualMachine` manifest. The Kubernetes API pauses the request and sends it to `virt-joiner`.
+2. **Registration:** `virt-joiner` connects to the FreeIPA server, creates a new host entry, and generates a One-Time Password (OTP).
+3. **Injection:** The VM configuration is patched (mutated) to include a `cloud-init` script containing the OTP and the `ipa-client-install` command.
+4. **Boot:** The VM is allowed to start. On first boot, `cloud-init` runs the install command, using the OTP to join the domain securely.
+5. **Verification:** The background controller polls FreeIPA to check if the host has uploaded its Keytab (indicating success) and emits a `Normal` event to the Kubernetes object.
 
 ### Phase 2: VM Deletion
-1.  **Watch:** When a user deletes the VM, the `virt-joiner` controller detects the deletion timestamp.
-2.  **Cleanup:** The controller connects to FreeIPA and deletes the host entry to ensure the directory remains clean.
-3.  **Finalize:** The Kubernetes Finalizer is removed, allowing the VM object to be fully deleted from the cluster.
+
+1.**Watch:** When a user deletes the VM, the `virt-joiner` controller detects the deletion timestamp.
+2. **Cleanup:** The controller connects to FreeIPA and deletes the host entry to ensure the directory remains clean.
+3. **Finalize:** The Kubernetes Finalizer is removed, allowing the VM object to be fully deleted from the cluster.
 
 ## ✨ Features
 
@@ -41,8 +43,6 @@ The application consists of two main components running in a single container:
 * OpenShift or Kubernetes cluster with KubeVirt installed.
 * FreeIPA / Red Hat IDM server reachable from the cluster.
 * A Service Account in IPA with permissions to add/delete hosts.
-
-
 
 ### 1. Create Secret
 
@@ -145,6 +145,8 @@ spec:
           env:
             - name: IPA_HOST
               value: "ipa.example.com"
+            - name: IPA_VERIFY_SSL
+              value: "True"
             - name: IPA_USER
               value: "admin"
             - name: IPA_PASS
@@ -206,6 +208,7 @@ You can configure the application via **Environment Variables** or a `config.yam
 | `IPA_HOST` | Hostname of FreeIPA server | `ipa.example.com` |
 | `IPA_USER` | User with add/del permissions | `admin` |
 | `IPA_PASS` | Password for the user | *Required* |
+| `IPA_VERIFY_SSL`| Verifys IPA tls certs | `false` |
 | `DOMAIN` | Domain name for the host (FQDN) | `example.com` |
 | `LOG_LEVEL` | Logging verbosity | `INFO` |
 | `FINALIZER_NAME` | K8s Finalizer string | `ipa.enroll/cleanup` |
@@ -220,6 +223,9 @@ ipa_user: "admin"
 # It is recommended to use an Environment Variable (IPA_PASS) for the password
 # instead of writing it here, but you can uncomment this for local testing.
 # ipa_pass: "SecretPassword123!"
+
+# Set to false by default but in a production environment its probably worth setting this to true.
+ipa_verify_ssl: false
 
 # The DNS domain your VMs will join
 domain: "example.com"
@@ -281,6 +287,7 @@ To test the controller logic locally against a real K8s cluster and IPA server:
     export IPA_HOST="ipa.example.com"
     export IPA_USER="admin"
     export IPA_PASS="Secret123!"
+    export IPA_VERIFY_SSL='False'
     export DOMAIN="example.com"
     export KUBECONFIG=~/.kube/config
     ```
@@ -314,11 +321,21 @@ podman build -t virt-joiner:latest -f Containerfile .
 
 ## 🤝 Contributing
 
-1. Bump the version in the `VERSION` file.
-2. Submit a Pull Request.
-3. CI will run tests automatically.
-4. On merge to `main`, a new container image will be pushed to GHCR with the version tag.
+We welcome contributions! Follow these steps to submit bug fixes or new features:
 
-## Licence
+1. **Make your changes:** Create an Issue with your proposed changes. Than create a new branch for your feature or fix.
+2. **Submit a Pull Request:** Push your branch and open a PR against `main`.
+3. **CI Verification:** The CI pipeline will automatically run the test suite against your code.
+4. **Merge:** Once approved, your code will be merged into `main` (this does **not** trigger a new release image).
+
+## 🚀 Releasing
+
+To publish a new version of the application to GHCR:
+
+1. **Bump the Version:** Update the semantic version number in the `VERSION` file.
+2. **Submit a Release PR:** Open a Pull Request with the version change.
+3. **Deploy:** Upon merging the version bump to `main`, the deployment pipeline will trigger automatically and push the new container image to GHCR with the corresponding version tag.
+
+## 📜 License
 
 Apache License 2.0
