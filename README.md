@@ -320,4 +320,5 @@ podman build -t virt-joiner:latest -f Containerfile .
 4. On merge to `main`, a new container image will be pushed to GHCR with the version tag.
 
 ## Licence
+
 Apache License 2.0
