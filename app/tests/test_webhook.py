@@ -167,6 +167,7 @@ async def test_mutate_vm_os_detection(mocker):
     # Should still see the enroll command
     assert "ipa-client-install" in user_data
 
+
 def test_cloud_init_syntax_validity(mocker):
     """
     Ensures the generated user-data string is actually valid YAML.
@@ -183,7 +184,9 @@ def test_cloud_init_syntax_validity(mocker):
     patch_obj = json.loads(patch_decoded)
 
     # Extract the user-data string
-    volume_patch = next((op for op in patch_obj if op["path"] == "/spec/template/spec/volumes/-"), None)
+    volume_patch = next(
+        (op for op in patch_obj if op["path"] == "/spec/template/spec/volumes/-"), None
+    )
 
     # FIX: Assert it is not None. This satisfies Pylance and fails the test cleanly if logic breaks.
     assert volume_patch is not None, "Cloud-init volume patch was not found in response"
