@@ -1,6 +1,8 @@
 from python_freeipa import Client
 from app.config import CONFIG, logger
+from typing import Tuple
 import datetime
+import random
 import dns.resolver
 
 def ipa_resolve_srv(service: str, protocol: str, domain: str) -> Optional[Tuple[str, int]]:
@@ -96,12 +98,12 @@ def get_ipa_client():
     logger.info(f"Connecting to FreeIPA server: {host}")
 
     try:
-        c = Client(host=full_host, verify_ssl=CONFIG["IPA_VERIFY_SSL"])
+        c = Client(host=host, verify_ssl=CONFIG["IPA_VERIFY_SSL"])
         c.login(CONFIG["IPA_USER"], CONFIG["IPA_PASS"])
         logger.info("Successfully authenticated to FreeIPA")
         return c
     except Exception as e:
-        raise RuntimeError(f"Failed to authenticate to FreeIPA server {full_host}: {e}") from e
+        raise RuntimeError(f"Failed to authenticate to FreeIPA server {host}: {e}") from e
 
 # --- Helper: Robust Command Executor ---
 def execute_ipa_command(client, command, *args, **kwargs):
