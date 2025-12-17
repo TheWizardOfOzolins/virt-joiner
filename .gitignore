@@ -4,3 +4,4 @@ certs
 .vscode
 config.yaml
 .pytest_cache
+.ruff_cache
