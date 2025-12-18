@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 import dns.resolver
 from app.services.ipa import ipa_resolve_srv, get_ipa_client
 
@@ -55,7 +55,6 @@ def test_get_ipa_client_retry_flow(mocker):
     Test that we try DNS hosts first, then Static hosts,
     and retry until login succeeds.
     """
-    # ... (Setup code remains the same) ...
     # 1. Mock Configuration
     mocker.patch.dict(
         "app.services.ipa.CONFIG",
@@ -81,13 +80,16 @@ def test_get_ipa_client_retry_flow(mocker):
         None,  # static-backup succeeds
     ]
 
-    # 5. Run
-    c = get_ipa_client()
+    # 5. Run (UPDATED: Unpack the tuple)
+    c, hostname = get_ipa_client()
 
     # 6. Assertions
     assert c == client_instance
+    # Verify we got the hostname of the server that actually worked
+    assert hostname == "static-backup"
 
-    # UPDATED: We must expect the login calls too!
+    # Verify we tried initializing with both hosts in order
+    from unittest.mock import call
     expected_calls = [
         call(host="dns-host-1", verify_ssl=False),
         call().login("admin", "pass"),
