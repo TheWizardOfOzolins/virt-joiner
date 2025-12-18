@@ -115,7 +115,7 @@ async def test_controller_deletion_flow(mocker, mock_k8s_client, mock_ipa_action
 async def test_keytab_poll_success(mocker, mock_send_event):
     # 1. Mock IPA
     mock_client = MagicMock()
-    # UPDATED: Return a tuple (client, hostname)
+
     mocker.patch(
         "app.services.k8s.get_ipa_client", return_value=(mock_client, "ipa.test.lab")
     )
@@ -146,7 +146,6 @@ async def test_keytab_poll_success(mocker, mock_send_event):
 @pytest.mark.asyncio
 async def test_keytab_poll_timeout(mocker, mock_send_event):
     mock_client = MagicMock()
-    # UPDATED: Return a tuple (client, hostname)
     mocker.patch(
         "app.services.k8s.get_ipa_client", return_value=(mock_client, "ipa.test.lab")
     )

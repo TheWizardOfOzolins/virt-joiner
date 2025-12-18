@@ -110,7 +110,6 @@ async def test_keytab_poll_reconnects_on_error(mocker):
     mock_client_1 = MagicMock(name="client_1")
     mock_client_2 = MagicMock(name="client_2")
 
-    # UPDATED: Side effects must be TUPLES (client, hostname)
     mock_get_client.side_effect = [
         (mock_client_1, "ipa1.example.com"),
         (mock_client_2, "ipa2.example.com"),
