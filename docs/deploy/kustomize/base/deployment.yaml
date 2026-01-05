@@ -2,28 +2,28 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: virt-joiner
+  name: virt-ipa-joiner
   namespace: openshift-cnv
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: virt-joiner
+      app: virt-ipa-joiner
   template:
     metadata:
       labels:
-        app: virt-joiner
+        app: virt-ipa-joiner
     spec:
-      serviceAccountName: virt-joiner
+      serviceAccountName: virt-ipa-joiner
       containers:
-        - name: virt-joiner
-          image: ghcr.io/thewizardofozolins/virt-joiner:latest
+        - name: virt-ipa-joiner
+          image: ghcr.io/thewizardofozolins/virt-ipa-joiner:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8443
           envFrom:
             - secretRef:
-                name: virt-joiner-config
+                name: virt-ipa-joiner-config
           volumeMounts:
             - name: certs
               mountPath: /var/run/secrets/serving-cert
@@ -55,4 +55,4 @@ spec:
       volumes:
         - name: certs
           secret:
-            secretName: virt-joiner-certs
+            secretName: virt-ipa-joiner-certs

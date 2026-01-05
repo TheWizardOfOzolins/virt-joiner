@@ -1,6 +1,6 @@
-# virt-joiner
+# virt-ipa-joiner
 
-**virt-joiner** is a Kubernetes/OpenShift controller and Mutating Webhook designed to automatically enroll **KubeVirt VirtualMachines** into **FreeIPA** (or Red Hat IDM).
+**virt-ipa-joiner** is a Kubernetes/OpenShift controller and Mutating Webhook designed to automatically enroll **KubeVirt VirtualMachines** into **FreeIPA** (or Red Hat IDM).
 
 It simplifies VM lifecycle management by handling identity registration at boot and cleanup at deletion.
 
@@ -15,15 +15,15 @@ The application consists of two main components running in a single container:
 
 ### Phase 1: VM Creation & Enrollment
 
-1. **Intercept:** A user applies a `VirtualMachine` manifest. The Kubernetes API pauses the request and sends it to `virt-joiner`.
-2. **Registration:** `virt-joiner` connects to the FreeIPA server, creates a new host entry, and generates a One-Time Password (OTP).
+1. **Intercept:** A user applies a `VirtualMachine` manifest. The Kubernetes API pauses the request and sends it to `virt-ipa-joiner`.
+2. **Registration:** `virt-ipa-joiner` connects to the FreeIPA server, creates a new host entry, and generates a One-Time Password (OTP).
 3. **Injection:** The VM configuration is patched (mutated) to include a `cloud-init` script containing the OTP and the `ipa-client-install` command.
 4. **Boot:** The VM is allowed to start. On first boot, `cloud-init` runs the install command, using the OTP to join the domain securely.
 5. **Verification:** The background controller polls FreeIPA to check if the host has uploaded its Keytab (indicating success) and emits a `Normal` event to the Kubernetes object.
 
 ### Phase 2: VM Deletion
 
-1.**Watch:** When a user deletes the VM, the `virt-joiner` controller detects the deletion timestamp.
+1.**Watch:** When a user deletes the VM, the `virt-ipa-joiner` controller detects the deletion timestamp.
 2. **Cleanup:** The controller connects to FreeIPA and deletes the host entry to ensure the directory remains clean.
 3. **Finalize:** The Kubernetes Finalizer is removed, allowing the VM object to be fully deleted from the cluster.
 
@@ -43,7 +43,7 @@ The application consists of two main components running in a single container:
 
 ### Service Discovery
 
-`virt-joiner` attempts to locate FreeIPA servers in the following order:
+`virt-ipa-joiner` attempts to locate FreeIPA servers in the following order:
 
 1. **DNS SRV Records:** It queries `_kerberos._tcp.<DOMAIN>` to find all available servers. If multiple records are found, it respects priority and randomizes weight for load balancing.
 2. **Static Configuration:** If no SRV records are found, it falls back to the `IPA_HOST` variable. This can be a single host or a comma-separated list (e.g., `ipa1.lab.com,ipa2.lab.com`).
@@ -112,7 +112,7 @@ The project uses **Red Hat UBI 9** as the base image.
 
 ```bash
 # Build with Podman
-podman build -t virt-joiner:latest -f Containerfile .
+podman build -t virt-ipa-joiner:latest -f Containerfile .
 ```
 
 ## 🤝 Contributing

@@ -1,6 +1,6 @@
 # Deployment
 
-This guide explains how to deploy the `virt-joiner` component using Kustomize on an OpenShift or Kubernetes cluster.
+This guide explains how to deploy the `virt-ipa-joiner` component using Kustomize on an OpenShift or Kubernetes cluster.
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ Edit the secrets file for your specific cluster to provide the required FreeIPA 
 apiVersion: v1
 kind: Secret
 metadata:
-  name: virt-joiner-config
+  name: virt-ipa-joiner-config
   namespace: openshift-cnv
 type: Opaque
 stringData:

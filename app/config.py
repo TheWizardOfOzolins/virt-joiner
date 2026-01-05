@@ -70,4 +70,4 @@ numeric_level = getattr(logging, CONFIG["LOG_LEVEL"], logging.INFO)
 logging.basicConfig(
     level=numeric_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
-logger = logging.getLogger("virt-joiner")
+logger = logging.getLogger("virt-ipa-joiner")

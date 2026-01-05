@@ -111,7 +111,7 @@ jobs:
           else
             echo "IS_FORK=true" >> $GITHUB_ENV
             echo "REGISTRY=ttl.sh" >> $GITHUB_ENV
-            echo "IMAGE_NAME=virt-joiner-pr-${{ github.event.number }}" >> $GITHUB_ENV
+            echo "IMAGE_NAME=virt-ipa-joiner-pr-${{ github.event.number }}" >> $GITHUB_ENV
             echo "Using Ephemeral Registry: ttl.sh"
           fi
 
@@ -173,7 +173,7 @@ jobs:
           IMAGE_REF=$(echo "${{ steps.meta.outputs.tags }}" | head -n 1)
           echo "Testing Image: $IMAGE_REF"
 
-          podman run --detach --name virt-joiner-test \
+          podman run --detach --name virt-ipa-joiner-test \
             -v $(pwd)/dummy-certs:/var/run/secrets/serving-cert:Z \
             -e LOG_LEVEL=DEBUG \
             -p 8443:8443 \
@@ -183,15 +183,15 @@ jobs:
         run: |
           echo "Waiting 5 seconds for application startup..."
           sleep 5
-          is_running=$(podman inspect -f '{{.State.Running}}' virt-joiner-test)
+          is_running=$(podman inspect -f '{{.State.Running}}' virt-ipa-joiner-test)
 
           if [ "$is_running" = "true" ]; then
             echo "✅ Container started successfully."
-            podman logs virt-joiner-test
-            podman rm -f virt-joiner-test
+            podman logs virt-ipa-joiner-test
+            podman rm -f virt-ipa-joiner-test
           else
             echo "❌ Container crashed on startup!"
-            podman logs virt-joiner-test
+            podman logs virt-ipa-joiner-test
             exit 1
           fi
 

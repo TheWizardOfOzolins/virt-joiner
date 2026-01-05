@@ -47,7 +47,7 @@ async def send_k8s_event(
                 "reason": reason,
                 "message": message,
                 "type": event_type,
-                "source": {"component": "virt-joiner"},
+                "source": {"component": "virt-ipa-joiner"},
                 "firstTimestamp": timestamp,
                 "lastTimestamp": timestamp,
                 "count": 1,
