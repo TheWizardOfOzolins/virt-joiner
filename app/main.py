@@ -10,7 +10,7 @@ from app.config import logger
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     version = os.getenv("APP_VERSION", "unknown")
-    logger.info(f"Starting virt-joiner controller version: {version}")
+    logger.info(f"Starting virt-ipa-joiner controller version: {version}")
 
     # Start the background controller
     controller_task = asyncio.create_task(run_controller())
@@ -18,7 +18,7 @@ async def lifespan(app: FastAPI):
     yield  # Application runs here
 
     # Shutdown logic
-    logger.info("Shutting down virt-joiner...")
+    logger.info("Shutting down virt-ipa-joiner...")
     controller_task.cancel()
     try:
         await controller_task

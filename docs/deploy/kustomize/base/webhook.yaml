@@ -1,14 +1,14 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: virt-joiner-webhook
+  name: virt-ipa-joiner-webhook
   annotations:
     service.beta.openshift.io/inject-cabundle: "true"
 webhooks:
-  - name: virt-joiner.virtualisation.svc
+  - name: virt-ipa-joiner.virtualisation.svc
     clientConfig:
       service:
-        name: virt-joiner
+        name: virt-ipa-joiner
         namespace: openshift-cnv
         path: "/mutate"
     rules:

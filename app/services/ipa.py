@@ -137,7 +137,7 @@ def ipa_host_add(vm_name: str, namespace: str, vm_uuid: str) -> Tuple[str, str]:
 
     fqdn = build_fqdn(vm_name, namespace)
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    desc_text = f"Created by virt-joiner at {timestamp} | K8s UID: {vm_uuid}"
+    desc_text = f"Created by virt-ipa-joiner at {timestamp} | K8s UID: {vm_uuid}"
 
     logger.info(f"Registering host: {fqdn} on server {connected_host}")
     try:

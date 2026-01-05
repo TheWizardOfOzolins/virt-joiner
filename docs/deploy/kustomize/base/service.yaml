@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: virt-joiner
+  name: virt-ipa-joiner
   namespace: openshift-cnv
   annotations:
-    service.beta.openshift.io/serving-cert-secret-name: virt-joiner-certs
+    service.beta.openshift.io/serving-cert-secret-name: virt-ipa-joiner-certs
 spec:
   ports:
     - port: 443
       targetPort: 8443
   selector:
-    app: virt-joiner
+    app: virt-ipa-joiner

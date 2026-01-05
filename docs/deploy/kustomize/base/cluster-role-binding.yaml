@@ -2,12 +2,12 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: virt-joiner-binding
+  name: virt-ipa-joiner-binding
 subjects:
   - kind: ServiceAccount
-    name: virt-joiner
+    name: virt-ipa-joiner
     namespace: openshift-cnv
 roleRef:
   kind: ClusterRole
-  name: virt-joiner-role
+  name: virt-ipa-joiner-role
   apiGroup: rbac.authorization.k8s.io
