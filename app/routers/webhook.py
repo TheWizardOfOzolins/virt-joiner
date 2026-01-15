@@ -74,7 +74,6 @@ async def mutate_vm(
                 "status": {"message": error_msg, "code": 400},
             },
         }
-    # -----------------------------
 
     should_enroll = await check_should_enroll(vm_object, namespace)
 
@@ -147,8 +146,6 @@ async def mutate_vm(
                 install_cmd_str = os_cmd
                 break
 
-        # --- UPDATED REALM LOGIC ---
-        # Look for 'REALM' in CONFIG, otherwise default to uppercase DOMAIN
         realm_arg = CONFIG.get("REALM", CONFIG["DOMAIN"].upper())
 
         ipa_cmd_parts = [
@@ -156,7 +153,7 @@ async def mutate_vm(
             f"--server={pinned_server}",
             f"--hostname={fqdn}",
             f"--domain={CONFIG['DOMAIN']}",
-            f"--realm={realm_arg}",  # <--- UPDATED HERE
+            f"--realm={realm_arg}",
             f"--password='{otp}'",
             "--mkhomedir",
             "--unattended",
