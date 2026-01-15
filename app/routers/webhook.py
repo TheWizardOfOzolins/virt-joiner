@@ -147,12 +147,16 @@ async def mutate_vm(
                 install_cmd_str = os_cmd
                 break
 
+        # --- UPDATED REALM LOGIC ---
+        # Look for 'REALM' in CONFIG, otherwise default to uppercase DOMAIN
+        realm_arg = CONFIG.get("REALM", CONFIG["DOMAIN"].upper())
+
         ipa_cmd_parts = [
             "ipa-client-install",
             f"--server={pinned_server}",
             f"--hostname={fqdn}",
             f"--domain={CONFIG['DOMAIN']}",
-            f"--realm={CONFIG['DOMAIN'].upper()}",
+            f"--realm={realm_arg}",  # <--- UPDATED HERE
             f"--password='{otp}'",
             "--mkhomedir",
             "--unattended",
